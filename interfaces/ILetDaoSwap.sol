@@ -11,4 +11,9 @@ interface ILetDaoSwap {
         uint256 amount1Min_,
         uint256 deadline_
     ) external;
+    function swapToken(
+        address[] calldata path_,
+        uint256 amount_,
+        uint256 deadline_
+    ) external returns(uint256 amount);
 }

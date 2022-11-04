@@ -225,11 +225,14 @@ contract BonusWeek is Op {
 
         require(weekBonus[wID].totalAmount > 0, "no vote");
         for(uint256 i = 0; i < weekBonus[wID].weekPool.length; i++) {   
+            uint256 _value = getPoolAmount(weekBonus[wID].weekPool[i], wID);
             weekGame[wID][weekBonus[wID].weekPool[i]].letBonus =     
                 _weekBonusAmount.
-                mul(getPoolAmount(weekBonus[wID].weekPool[i], wID)).
+                mul(_value).
                 div(weekBonus[wID].totalAmount);
-            require(weekGame[wID][weekBonus[wID].weekPool[i]].letBonus > 0, "weekBonusAmount too small");
+            if(_value > 0) {
+                require(weekGame[wID][weekBonus[wID].weekPool[i]].letBonus > 0, "weekBonusAmount too small");
+            }
             weekGame[wID][weekBonus[wID].weekPool[i]].isAdd = true;
         }
         LET.mint(address(this), _weekBonusAmount);

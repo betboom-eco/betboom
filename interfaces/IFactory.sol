@@ -15,6 +15,15 @@ interface IFactory {
     function getChoiceRate(uint256 cupID, uint256 totalID) external view returns(int256, uint256, uint256);
     function getResult(uint256 cupID, uint256 mID) external view returns(uint256, uint256);
     function getIndex(uint256 cupID, uint256 totalID) external view returns(uint256);
-    function getGType(uint256 cupID, uint256 totalID) external view returns(uint256);
+    function getGType(uint256 cupID, uint256 totalID) external view returns(uint256, address);
     function getCancle(uint256 cupID, uint256 mID) external view returns(bool);
+    function betToken() external view returns(address);
+    function betFor(
+        address user, 
+        uint256 bAmount,
+        uint256 lAmount,
+        uint256 value,
+        uint8 num
+    ) external;
+    function getEndInfo() external view returns(uint256, uint256);
 }

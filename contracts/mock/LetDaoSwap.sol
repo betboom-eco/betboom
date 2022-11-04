@@ -67,6 +67,20 @@ contract LetDaoSwap is Operator{
         return true;
     }
 
+    function swapToken(
+        address[] calldata path_,
+        uint256 amount_,
+        uint256 deadline_
+    ) external onlyContractAuth returns(uint256 amount) {
+        IERC20(path_[0]).safeTransferFrom(msg.sender, address(this), amount_);
+        uint256 beforeAmount = IERC20(path_[1]).balanceOf(address(this));
+        IERC20(path_[0]).safeIncreaseAllowance(router, amount_);
+        IUniswapV2Router02(router).swapExactTokensForTokens(amount_, 0, path_, address(this), deadline_);
+        uint256 afterAmount = IERC20(path_[1]).balanceOf(address(this));
+        amount = afterAmount.sub(beforeAmount);
+        IERC20(path_[1]).safeTransfer(msg.sender, amount);
+    }
+
     function depositSigleToken(
         address lpToken_,
         address[] calldata path_,
@@ -102,7 +116,7 @@ contract LetDaoSwap is Operator{
         _depositLiquidity(vars);
 
         _refund(vars);
-    }
+    } 
 
     function _depositLiquidity(DepositVars memory vars_) internal {
         // add liquidity to the router

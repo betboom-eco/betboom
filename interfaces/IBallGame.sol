@@ -28,4 +28,21 @@ interface IBallGame {
         uint256 mID, 
         uint256 totalID
     ) external view returns(uint256);
+    function getPayRate(
+        uint256 cupID, 
+        uint256 mID, 
+        int256 choice
+    ) external view returns(uint256 rate);
+    function checkBet(
+        uint256 cupID,
+        uint256 mID,
+        uint256 amount,
+        uint256 index,
+        int256 choice
+    ) external view returns(bool);
+    function getClaim(
+        uint256 cupID, 
+        uint256 mID, 
+        uint256 totalID
+    ) external view returns(uint256);
 }
