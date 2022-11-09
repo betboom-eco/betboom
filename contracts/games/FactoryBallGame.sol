@@ -207,6 +207,8 @@ contract FactoryBallGame is Op, ReentrancyGuard {
     function caculateMatch(uint256 cupID, uint256 mID) external {
         checkCaculate(msg.sender, cupID, mID);
         matchInfo[cupID][mID].isCaculate = true;
+        rewardPool.updateCaculateAmount(cupMatchAmount[cupID][mID]);
+
         for(uint256 i = 0; i < midGameAddress[cupID][mID].length(); i++) {
             IBallGame(midGameAddress[cupID][mID].at(i)).caculateMatch(cupID, mID);
         }
@@ -330,8 +332,7 @@ contract FactoryBallGame is Op, ReentrancyGuard {
         if(!cupStatus[cupID].hasBet) {
             cupStatus[cupID].hasBet = true;
         }
-
-
+        cupMatchAmount[cupID][mID] = cupMatchAmount[cupID][mID].add(value);
         betInfo[cupID][totalID] = BetInfo(
             msg.sender,
             gameAddr,
@@ -362,6 +363,7 @@ contract FactoryBallGame is Op, ReentrancyGuard {
 
         emit Bet(msg.sender, cupID, mID, totalID);
     }
+    mapping(uint256 => mapping(uint256 => uint256)) public cupMatchAmount;
 
     function setFeeRate(uint256 fee) external {
         require(fee >= 0 && fee < baseRate, "fee err");

@@ -39,6 +39,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
     uint256 public weekNum;
     uint256 public totalReward;
 
+    uint256 public actCaculateLpAmount;
     uint256 public maxNum = 30;
     uint256 public coe = 1000;
     uint256 public totalBetAmount;
@@ -67,6 +68,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
     IERC20 public immutable LET;
     IERC20 public immutable BET;
     ILetDaoSwap public ldSwap;
+
 
 
     struct LuckeyUser {
@@ -149,7 +151,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
         deployBlock = block.number;
         LET = IERC20(_let);
         BET = IERC20(_bet);
-
+        nob = ++esnInfo.esnNum;
         
         week[weekNum].startTime = block.timestamp;
         setDecay();
@@ -190,7 +192,8 @@ contract RewardPool is ReentrancyGuard, RewardParama {
     function onlyAddAmount(uint256 amount) external {
         require(amount > 0 && rewardToken.balanceOf(msg.sender) >= amount, "amount err");
         rewardToken.safeTransferFrom(msg.sender, address(this), amount);
-        poolInfo.totalAmount = poolInfo.totalAmount.add(amount); 
+        poolInfo.totalAmount = poolInfo.totalAmount.add(amount);
+        actCaculateLpAmount = actCaculateLpAmount.add(amount); 
         cumulativeAdd = cumulativeAdd.add(amount);
 
         emit OnlyAddAmount(msg.sender, amount);
@@ -221,6 +224,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
         insurerLastTime[msg.sender] = block.timestamp;
         stake(tokenAmount);
         poolInfo.totalAmount = poolInfo.totalAmount.add(tokenAmount);
+        actCaculateLpAmount = actCaculateLpAmount.add(tokenAmount);
     }
     
     function claimInsurer(uint256 lpAmount) 
@@ -266,6 +270,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
 
     function withdraw(uint256 _value, uint256 amount) internal {
         poolInfo.totalAmount = poolInfo.totalAmount.sub(_value);
+        actCaculateLpAmount = poolInfo.totalAmount;
 
         //lpToken.safeTransferFrom(msg.sender, address(this), amount);
         esnInfo.totalLPStake = esnInfo.totalLPStake.sub(amount);
@@ -284,14 +289,14 @@ contract RewardPool is ReentrancyGuard, RewardParama {
         if(totalSupplyAmount() == 0) {
             return E6;
         }
-        return totalSupplyAmount().mul(E6).div(getPoolTotalAmount());
+        return totalSupplyAmount().mul(E6).div(actCaculateLpAmount);
     }
     
     function getTokenToLp() public view returns(uint256) {
-        if(getPoolTotalAmount() == 0) {
+        if(actCaculateLpAmount == 0) {
             return 0;
         }
-        return getPoolTotalAmount().mul(E6).div(totalSupplyAmount());
+        return actCaculateLpAmount.mul(E6).div(totalSupplyAmount());
     }
     
     function getUseAmount() external view returns(uint256) {
@@ -350,12 +355,18 @@ contract RewardPool is ReentrancyGuard, RewardParama {
         poolInfo.earnAmount = poolInfo.earnAmount.add(amount);
     }
 
+    function updateCaculateAmount(uint256 amount) external {
+        require(msg.sender == address(factory), "auth err");
+        actCaculateLpAmount = actCaculateLpAmount.add(amount);
+    }
+
     function updateValue(uint256 maxTake, uint256 take) external {
         require(factory.getInGame(msg.sender) || msg.sender == address(factory), "no auth");    
         update();
         poolInfo.maxTakeAmount = poolInfo.maxTakeAmount.sub(maxTake);
         poolInfo.totalAmount = poolInfo.totalAmount.sub(take);
         poolInfo.loseAmount = poolInfo.loseAmount.add(take);
+        actCaculateLpAmount = actCaculateLpAmount.sub(take); 
     }
 
     function cliam(address user, uint256 amount) external  {
@@ -393,7 +404,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
                 num1 = num1 * 2;
             }
         }
-        uint256 num2 = nob + 1;
+        uint256 num2 = nob;
         if(num2 > maxNum) {
             num2 = maxNum;
         }
@@ -545,6 +556,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
             letSwap();
             betSwap();
             bnbUser[nob] = user;
+            bnbNumber[nob] = block.number;
             bnbTime[nob].actTime = block.timestamp;
             LET.mint(user, rewardAmount);
 
@@ -554,6 +566,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
         }
     }
 
+    mapping(uint256 => uint256) public bnbNumber;
     event BnbGame(address account, address user, uint256 num);
     function AllocateAssets() internal {
         bombInfo[nob].totalAmount = esnInfo.esnAmount;
@@ -730,17 +743,14 @@ contract RewardPool is ReentrancyGuard, RewardParama {
     }
 
     function getBnbNum() public view returns(uint256) {
-        if(nob == 0) {
-            return 0;
-        }
         return nob - 1;
     }
 
     function getBnbAveTime() external view returns(uint256) {
-        if(nob == 0) {
+        if(nob == 1) {
             return 0;
         }
-        return bnbTime[nob-1].actTime.sub(bnbTime[0].startTime).div(nob);
+        return bnbTime[nob-1].actTime.sub(bnbTime[1].startTime).div(nob-1);
     }
 
     function getBetUserNum() external view returns(uint256) {
@@ -762,7 +772,7 @@ contract RewardPool is ReentrancyGuard, RewardParama {
 
     function initBnbTime(uint256 startTime) external onlyOperator {
         require(!initTime, "has init");
-        require(nob == 0, "nob err");
+        require(nob == 1, "nob err");
         require(startTime > block.timestamp, "time err");
         initTime = true;
         bnbTime[nob].startTime = startTime;

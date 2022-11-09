@@ -18,4 +18,5 @@ interface IRewardPool {
     ) external view returns(uint256 bAmount, uint256 lAmount);
     function blast(address user) external;
     function addMint(address user, uint256 amount, uint256 bAmount, uint256 lAmount) external;
+    function updateCaculateAmount(uint256 amount) external;
 }
