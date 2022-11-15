@@ -36,6 +36,7 @@ contract FactoryBallGame is Op, ReentrancyGuard {
     uint256 public totalTeamID;
     uint256 public totalCupID;
     uint256 public feeRate = 200;
+    uint256 public maxFee = 500;
     uint256 public lastTime;
     uint256 public notCacuNum;
 
@@ -321,6 +322,9 @@ contract FactoryBallGame is Op, ReentrancyGuard {
         require(amount >= cupInfo[cupID].minAmount &&  amount <= cupInfo[cupID].maxAmount, "out range");
         require(matchInfo[cupID][mID].isOpen, "game close");
         require(cupInfo[cupID].isPlay, "cup not open");
+        require(!matchInfo[cupID][mID].isCaculate, "has caculate");
+        require(!matchInfo[cupID][mID].isCancel, "result set cancel");
+
         uint256 totalID = ++cupInfo[cupID].totalBetID;
         (uint256 value, uint256 rate) = IBallGame(gameAddr).bet(cupID, mID, amount, index, choice);
         (uint256 bAmount, uint256 lAmount) = rewardPool.getTokenAmount(value, rate, baseRate, 1);
@@ -365,8 +369,8 @@ contract FactoryBallGame is Op, ReentrancyGuard {
     }
     mapping(uint256 => mapping(uint256 => uint256)) public cupMatchAmount;
 
-    function setFeeRate(uint256 fee) external {
-        require(fee >= 0 && fee < baseRate, "fee err");
+    function setFeeRate(uint256 fee) external onlyOperator {
+        require(fee >= 0 && fee <= maxFee, "fee err");
         feeRate = fee;
     }
 
@@ -383,6 +387,8 @@ contract FactoryBallGame is Op, ReentrancyGuard {
         require(user != address(0), "user err");
         require(midGameAddress[cupID][mID].contains(gameAddr), "not in");
         require(amount >= cupInfo[cupID].minAmount &&  amount <= cupInfo[cupID].maxAmount, "out range");
+        require(!matchInfo[cupID][mID].isCaculate, "has caculate");
+        require(!matchInfo[cupID][mID].isCancel, "result set cancel");
         require(matchInfo[cupID][mID].isOpen, "game close");
         require(cupInfo[cupID].isPlay, "cup not open");
         return IBallGame(gameAddr).checkBet(cupID, mID, amount, index, choice);
@@ -571,7 +577,7 @@ contract FactoryBallGame is Op, ReentrancyGuard {
             "time err"
         );
         require(!cupStatus[cupID].hasBet, "some match has bet");
-        require(cupStatus[cupID].firstTime > block.timestamp, "some match has start");
+        require(cupStatus[cupID].firstTime == 0 || cupStatus[cupID].firstTime > block.timestamp, "some match has start");
         cupInfo[cupID].startTime = startTime;
     }
 

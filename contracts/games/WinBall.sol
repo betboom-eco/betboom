@@ -283,19 +283,24 @@ contract WinBall is Op {
     ) {
         before = takeInfo[cupID][mID].maxTake;
         TakeInfo memory tInfo = takeInfo[cupID][mID];
+        aTake = tInfo.aTake;
+        bTake = tInfo.bTake;
+        pTake = tInfo.pTake;
+
         if(cType == 1) {
-            aTake = tInfo.aRate.mul(amount).div(baseRate).add(tInfo.aTake);
+            aTake = tInfo.aRate.mul(amount).div(baseRate).add(aTake);
         }
         if(cType == 2) {
-            bTake = tInfo.bRate.mul(amount).div(baseRate).add(tInfo.bTake);
+            bTake = tInfo.bRate.mul(amount).div(baseRate).add(bTake);
         }
         if(cType == 3) {
-            pTake = tInfo.pRate.mul(amount).div(baseRate).add(tInfo.pTake);
+            pTake = tInfo.pRate.mul(amount).div(baseRate).add(pTake);
         }
 
         uint256 _bet = betValue[cupID][mID].add(amount);
 
         maxTake = aTake;
+
         if(maxTake < _bet) {
             maxTake = _bet;
         }
